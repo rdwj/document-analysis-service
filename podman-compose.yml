@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: document-analysis-service:latest
+    container_name: document-analysis-service
+    ports:
+      - "8000:8000"
+    environment:
+      # Service configuration
+      - APP_SERVICE_NAME=document-analysis-service
+      - APP_SERVICE_VERSION=1.0.0
+      - APP_DEBUG=true
+
+      # File size limits
+      - APP_MAX_UPLOAD_SIZE_MB=100
+      - APP_MAX_S3_SIZE_MB=1000
+
+      # S3 configuration (optional - uncomment and configure if using S3)
+      # - APP_S3_ENDPOINT=https://s3.amazonaws.com
+      # - AWS_ACCESS_KEY_ID=your_access_key
+      # - AWS_SECRET_ACCESS_KEY=your_secret_key
+
+      # CORS
+      - APP_CORS_ORIGINS=["*"]
+
+    volumes:
+      # Mount source for development hot-reload
+      - ./src:/opt/app-root/src/src:Z
+
+      # Optional: Mount test data directory
+      - ./test_data:/test_data:Z
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    restart: unless-stopped
+
+    # Resource limits for local development
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          memory: 2G
+
+# Optional: Add MinIO for local S3-compatible storage testing
+#  minio:
+#    image: quay.io/minio/minio:latest
+#    container_name: minio
+#    command: server /data --console-address ":9001"
+#    ports:
+#      - "9000:9000"
+#      - "9001:9001"
+#    environment:
+#      - MINIO_ROOT_USER=minioadmin
+#      - MINIO_ROOT_PASSWORD=minioadmin
+#    volumes:
+#      - minio_data:/data:Z
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+#      interval: 30s
+#      timeout: 20s
+#      retries: 3
+#    restart: unless-stopped
+
+# volumes:
+#   minio_data:

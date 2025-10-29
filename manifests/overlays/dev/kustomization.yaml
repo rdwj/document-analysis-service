@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: document-analysis-dev
+
+resources:
+- ../../base
+
+namePrefix: dev-
+
+commonLabels:
+  environment: dev
+
+# Override replicas for dev
+replicas:
+- name: document-analysis-service
+  count: 1
+
+# Override image tag for dev (using latest for now)
+images:
+- name: quay.io/wjackson/document-analysis
+  newTag: latest
+
+# Patch ConfigMap for dev environment
+configMapGenerator:
+- name: document-analysis-service-config
+  behavior: merge
+  literals:
+  - APP_DEBUG=true
+  - APP_MAX_UPLOAD_SIZE_MB=50
+  - APP_MAX_S3_SIZE_MB=500
+
+# Patch resources for dev (smaller)
+patches:
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "1Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "250m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "2Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "1000m"
+  target:
+    kind: Deployment
+    name: document-analysis-service

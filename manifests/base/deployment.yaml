@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: document-analysis-service
+  labels:
+    app: document-analysis-service
+    component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: document-analysis-service
+      component: api
+  template:
+    metadata:
+      labels:
+        app: document-analysis-service
+        component: api
+    spec:
+      serviceAccountName: document-analysis-service
+
+      containers:
+      - name: api
+        image: quay.io/wjackson/document-analysis:latest
+        imagePullPolicy: Always
+
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+
+        env:
+        # Load configuration from ConfigMap
+        - name: APP_SERVICE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: document-analysis-service-config
+              key: APP_SERVICE_NAME
+        - name: APP_SERVICE_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: document-analysis-service-config
+              key: APP_SERVICE_VERSION
+        - name: APP_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: document-analysis-service-config
+              key: APP_DEBUG
+        - name: APP_MAX_UPLOAD_SIZE_MB
+          valueFrom:
+            configMapKeyRef:
+              name: document-analysis-service-config
+              key: APP_MAX_UPLOAD_SIZE_MB
+        - name: APP_MAX_S3_SIZE_MB
+          valueFrom:
+            configMapKeyRef:
+              name: document-analysis-service-config
+              key: APP_MAX_S3_SIZE_MB
+        - name: APP_CORS_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: document-analysis-service-config
+              key: APP_CORS_ORIGINS
+
+        # Optional: S3 credentials from Secret
+        # - name: AWS_ACCESS_KEY_ID
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: s3-credentials
+        #       key: access-key-id
+        # - name: AWS_SECRET_ACCESS_KEY
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: s3-credentials
+        #       key: secret-access-key
+        # - name: APP_S3_ENDPOINT
+        #   valueFrom:
+        #     configMapKeyRef:
+        #       name: document-analysis-service-config
+        #       key: APP_S3_ENDPOINT
+
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: document-analysis-service
+  labels:
+    app: document-analysis-service

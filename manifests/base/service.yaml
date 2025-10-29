@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: document-analysis-service
+  labels:
+    app: document-analysis-service
+    component: api
+spec:
+  type: ClusterIP
+  selector:
+    app: document-analysis-service
+    component: api
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  sessionAffinity: None

@@ -1,0 +1,104 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# pytype
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Secrets (DO NOT COMMIT)
+*.key
+*.pem
+*.p12
+*credentials*
+*secret*
+.pypirc
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+/tmp/
+
+# Test data
+test_data/
+sample_files/
+
+# Container builds
+*.tar
+*.tar.gz
+
+# OpenShift/Kubernetes
+*.kubeconfig
+kustomization-*.yaml
+
+# Local development
+podman-compose.override.yml
+docker-compose.override.yml
+
+# Documentation builds
+docs/_build/
+site/

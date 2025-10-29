@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: document-analysis-staging
+
+resources:
+- ../../base
+
+namePrefix: staging-
+
+commonLabels:
+  environment: staging
+
+# Staging replicas (moderate HA)
+replicas:
+- name: document-analysis-service
+  count: 2
+
+# Override image tag for staging
+images:
+- name: quay.io/wjackson/document-analysis
+  newTag: latest
+
+# Patch ConfigMap for staging environment
+configMapGenerator:
+- name: document-analysis-service-config
+  behavior: merge
+  literals:
+  - APP_DEBUG=false
+  - APP_MAX_UPLOAD_SIZE_MB=75
+  - APP_MAX_S3_SIZE_MB=750
+
+# Patch resources for staging (between dev and prod)
+patches:
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "1.5Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "375m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "3Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "1500m"
+  target:
+    kind: Deployment
+    name: document-analysis-service

@@ -1,0 +1,76 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: document-analysis-prod
+
+resources:
+- ../../base
+
+namePrefix: prod-
+
+commonLabels:
+  environment: prod
+
+# Production replicas (HA)
+replicas:
+- name: document-analysis-service
+  count: 3
+
+# Override image tag for prod (using latest for now, can tag specific versions later)
+images:
+- name: quay.io/wjackson/document-analysis
+  newTag: latest
+
+# Patch ConfigMap for prod environment
+configMapGenerator:
+- name: document-analysis-service-config
+  behavior: merge
+  literals:
+  - APP_DEBUG=false
+  - APP_MAX_UPLOAD_SIZE_MB=100
+  - APP_MAX_S3_SIZE_MB=1000
+
+# Add PodDisruptionBudget for HA
+patches:
+- patch: |-
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: document-analysis-service
+    spec:
+      minAvailable: 2
+      selector:
+        matchLabels:
+          app: document-analysis-service
+          component: api
+  target:
+    kind: PodDisruptionBudget
+
+# Add HorizontalPodAutoscaler
+- patch: |-
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    metadata:
+      name: document-analysis-service
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: document-analysis-service
+      minReplicas: 3
+      maxReplicas: 10
+      metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+      - type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 80
+  target:
+    kind: HorizontalPodAutoscaler
