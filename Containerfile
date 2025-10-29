@@ -19,7 +19,8 @@ RUN dnf install -y \
 # Create cache directories as root so user 1001 can write to them
 RUN mkdir -p /opt/app-root/src/.cache/huggingface \
              /opt/app-root/src/.cache/docling \
-             /opt/app-root/src/.cache/easyocr && \
+             /opt/app-root/src/.cache/easyocr \
+             /opt/app-root/src/.cache/rapidocr && \
     chown -R 1001:0 /opt/app-root/src/.cache
 
 USER 1001
@@ -40,6 +41,9 @@ COPY --chown=1001:0 src/ ./src/
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -e .
+
+# Explicitly install OCR libraries to ensure they're available for model caching
+RUN pip install --no-cache-dir easyocr rapidocr-onnxruntime
 
 # Pre-download Docling models for standard pipeline for offline usage
 # Models: layout (RT-DETR), tableformer, code_formula, picture_classifier
