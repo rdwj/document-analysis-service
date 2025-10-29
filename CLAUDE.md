@@ -124,6 +124,63 @@ oc create secret generic s3-credentials \
   -n document-analysis-dev
 ```
 
+## Kustomize Deployment Architecture
+
+### Namespace-Based Environment Isolation
+
+This project uses **namespace-based isolation** rather than name prefixes for environment separation:
+
+- **Dev**: `document-analysis-dev` namespace
+- **Staging**: `document-analysis-staging` namespace
+- **Prod**: `document-analysis-prod` namespace
+
+**Why No namePrefix?**
+
+Kustomize's `namePrefix` feature can cause cross-reference issues between resources. Specifically:
+
+1. **namePrefix transforms resource names** (Deployment, Service, Route, ConfigMap)
+2. **But does NOT automatically update cross-references** in certain fields:
+   - Route `spec.to.name` → Service name
+   - Deployment `spec.serviceAccountName` → ServiceAccount name
+   - Deployment env `configMapKeyRef.name` → ConfigMap name
+
+**Example of the Problem:**
+
+```yaml
+# With namePrefix: dev-
+# Route gets renamed to: dev-document-analysis-service
+# Service gets renamed to: dev-document-analysis-service
+# BUT Route's spec.to.name STAYS: document-analysis-service ❌
+```
+
+This creates a mismatch where the Route points to a non-existent service.
+
+**Solution: Namespace Isolation**
+
+Since each overlay deploys to a different namespace, resource names can remain consistent:
+- All environments use the same resource names: `document-analysis-service`
+- Namespace provides complete isolation: no naming conflicts possible
+- Cross-references work correctly without patches
+- Simpler manifests, easier to maintain
+
+**If You Need namePrefix:**
+
+If you must use namePrefix (e.g., deploying multiple overlays to same namespace), add patches:
+
+```yaml
+# In overlay kustomization.yaml
+patches:
+- patch: |-
+    - op: replace
+      path: /spec/to/name
+      value: dev-document-analysis-service
+  target:
+    kind: Route
+    name: document-analysis-service
+```
+
+But this is **not recommended** - namespace isolation is cleaner.
+
 ## Configuration
 
 ### Environment Variables
@@ -261,6 +318,50 @@ Five strategies available for LLM/RAG optimization:
 To run integration tests, install all frameworks and remove skip markers or use `-m "not skip"`.
 
 ## Troubleshooting Common Issues
+
+### Route Not Connecting to Service
+
+**Symptom:** Route exists but returns 503 errors or "application is not available"
+
+**Cause:** Route may be pointing to wrong service name (common with namePrefix misconfigurations)
+
+**Diagnosis:**
+```bash
+# Check route target
+oc get route document-analysis-service -n document-analysis-dev -o yaml | grep -A 3 "to:"
+
+# Check if service exists with that name
+oc get service document-analysis-service -n document-analysis-dev
+
+# Check if pods are running
+oc get pods -n document-analysis-dev -l app=document-analysis-service
+```
+
+**Fix:**
+If route points to wrong service name, this project now uses namespace isolation without namePrefix. Redeploy:
+```bash
+oc apply -k manifests/overlays/dev -n document-analysis-dev
+```
+
+### Kustomize Build Issues
+
+**Test Kustomize output before deploying:**
+```bash
+# Build and inspect dev overlay
+oc kustomize manifests/overlays/dev/ | less
+
+# Check specific resources
+oc kustomize manifests/overlays/dev/ | grep -A 10 "kind: Route"
+oc kustomize manifests/overlays/dev/ | grep -A 5 "kind: Service"
+
+# Validate YAML syntax
+oc kustomize manifests/overlays/dev/ | oc apply --dry-run=client -f -
+```
+
+**Common Issues:**
+- Missing resources in base kustomization.yaml
+- Incorrect patch targets
+- namePrefix causing cross-reference issues (not used in this project)
 
 ### Service Not Starting
 ```bash

@@ -6,7 +6,8 @@ namespace: document-analysis-dev
 resources:
 - ../../base
 
-namePrefix: dev-
+# namePrefix removed - namespace isolation provides environment separation
+# Using namespace: document-analysis-dev is sufficient
 
 commonLabels:
   environment: dev

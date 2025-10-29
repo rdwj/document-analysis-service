@@ -6,7 +6,8 @@ namespace: document-analysis-staging
 resources:
 - ../../base
 
-namePrefix: staging-
+# namePrefix removed - namespace isolation provides environment separation
+# Using namespace: document-analysis-staging is sufficient
 
 commonLabels:
   environment: staging

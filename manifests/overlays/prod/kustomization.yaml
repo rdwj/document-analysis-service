@@ -6,7 +6,8 @@ namespace: document-analysis-prod
 resources:
 - ../../base
 
-namePrefix: prod-
+# namePrefix removed - namespace isolation provides environment separation
+# Using namespace: document-analysis-prod is sufficient
 
 commonLabels:
   environment: prod
